@@ -120,9 +120,9 @@ def save_predictions_to_files(prediction, img, frames, threshold=0.5, output_fil
     with open(output_files_name_without_extension+'.txt', 'w') as f:
         f.write(prediction_description)
     
-detection = pickle.load( open( "code_test_data\\detekcje.pkl", "rb" ) )
-frames = pickle.load( open( "code_test_data\\ramki.pkl", "rb" ) ) 
-#pred = pickle.load( open( "var.pkl", "rb" ) ) 
-img = io.imread('code_test_data\\img2.jpg')
-display_prediction(detection[0], img, threshold=0.1)
-save_predictions_to_files(detection[0], img, frames[0], threshold=0.1)
+# detection = pickle.load( open( "code_test_data\\detekcje.pkl", "rb" ) )
+# frames = pickle.load( open( "code_test_data\\ramki.pkl", "rb" ) ) 
+# #pred = pickle.load( open( "var.pkl", "rb" ) ) 
+# img = io.imread('code_test_data\\img2.jpg')
+# display_prediction(detection[0], img, threshold=0.1)
+# save_predictions_to_files(detection[0], img, frames[0], threshold=0.1)
