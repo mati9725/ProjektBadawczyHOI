@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "object_centric_spatial_branch"
-  WEIGHT: "output/VCOCO/model_sp_object.pth"
+  WEIGHT: "DRG/output/VCOCO/model_sp_object.pth"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
   RESNETS:

@@ -148,16 +148,10 @@ def generate_spatial(human_box, object_box):
     return Pattern
 
 
-def im_detect(model, im_dir, image_id, Test_RCNN, fastText, prior_mask, Action_dic_inv, object_thres, human_thres, prior_flag, detection, detect_object_centric_dict, device, cfg):
+def im_detect(model, img_original, image_id, Test_RCNN, fastText, prior_mask, Action_dic_inv, object_thres, human_thres, prior_flag, detection, detect_object_centric_dict, device, cfg):
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     DATA_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'Data'))
-    # if "train" in im_dir:
-    #     im_file = os.path.join(DATA_DIR, im_dir, 'COCO_train2014_' + (str(image_id)).zfill(12) + '.jpg')
-    # else:
-    #     im_file = os.path.join(DATA_DIR, im_dir, 'COCO_val2014_' + (str(image_id)).zfill(12) + '.jpg')
-    im_file = im_dir
-    img_original = Image.open(im_file)
-    img_original = img_original.convert('RGB')
+    
     im_shape = (img_original.height, img_original.width)  # (480, 640)
     transforms = build_transforms(cfg, is_train=False)
     worddim = fastText[1].shape[1]
@@ -263,3 +257,15 @@ def im_detect(model, im_dir, image_id, Test_RCNN, fastText, prior_mask, Action_d
                 dic['Score_obj'] = Score_obj
 
                 detect_object_centric_dict[image_id].append(dic)
+
+    try:
+        del blobs
+    except:
+        pass
+
+    try:
+        del image_list
+    except:
+        pass
+
+    torch.cuda.empty_cache()

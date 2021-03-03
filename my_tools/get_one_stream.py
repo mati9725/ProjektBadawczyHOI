@@ -35,7 +35,7 @@ try:
 except ImportError:
     raise ImportError('Use APEX for mixed precision via apex.amp')
 
-def get_one_stream(stream, image_id, path, test_detection):
+def get_one_stream(stream, images_id, images, test_detection):
     #Sciezka do pliku konfiguracyjnego
     if stream is 0:
         config_file = "my_tools/my_configs/VCOCO_app_only.yaml"
@@ -56,6 +56,7 @@ def get_one_stream(stream, image_id, path, test_detection):
     cfg.merge_from_list([])
     cfg.freeze()
 
+    
     #Budowanie modelu
     model = build_detection_model(cfg)
 
@@ -63,13 +64,16 @@ def get_one_stream(stream, image_id, path, test_detection):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model.to(device)
 
-    im_dir = path
-
-    #Fast RCNN detecions
-    # path_detection = "/home/zgorek/Desktop/Projekt Badawczy/DRG/Data/Test_Faster_RCNN_R-50-PFN_2x_VCOCO.pkl"
-    # test_detection_temp = pickle.load(open(path_detection, "rb"), encoding='latin1')
-    # test_detection = {}
-    # test_detection[image_id] = test_detection_temp[image_id]
+    # Initialize mixed-precision if necessary
+    use_mixed_precision = cfg.DTYPE == 'float16'
+    amp_handle = amp.init(enabled=use_mixed_precision, verbose=cfg.AMP_VERBOSE)
+    output_dir = cfg.OUTPUT_DIR
+    checkpointer = DetectronCheckpointer(cfg, model, save_dir=output_dir)
+    
+    my_arg = os.path.join(cfg.OUTPUT_DIR, 'model_%07d.pth' % 20000)
+    
+    ckpt = cfg.MODEL.WEIGHT
+    _ = checkpointer.load(ckpt, use_latest=True)
 
     path_embeddings = "/home/zgorek/Desktop/Projekt Badawczy/DRG/Data/fastText_new.pkl"
     word_embeddings = pickle.load(open(path_embeddings, "rb"), encoding='latin1')
@@ -87,52 +91,56 @@ def get_one_stream(stream, image_id, path, test_detection):
 
     detection = []
     detect_dict = {}
-    detect_dict[image_id] = []
+    for img, image_id in zip(images, tqdm(images_id)):
+        detect_dict[image_id] = []
 
-    if stream is 0:
-        fun(model = model, 
-            im_dir = im_dir, 
-            image_id = image_id, 
-            Test_RCNN = test_detection, 
-            fastText = word_embeddings, 
-            prior_mask = prior_mask, 
-            Action_dic_inv = action_dic_inv, 
-            object_thres = object_thres, 
-            human_thres = human_thres, 
-            prior_flag = prior_flag, 
-            detection = detection, 
-            detect_app_dict = detect_dict, 
-            device = device, 
-            cfg = cfg)
-    elif stream is 1:
-        fun(model = model, 
-            im_dir = im_dir, 
-            image_id = image_id, 
-            Test_RCNN = test_detection, 
-            fastText = word_embeddings, 
-            prior_mask = prior_mask, 
-            Action_dic_inv = action_dic_inv, 
-            object_thres = object_thres, 
-            human_thres = human_thres, 
-            prior_flag = prior_flag, 
-            detection = detection, 
-            detect_human_centric_dict = detect_dict, 
-            device = device, 
-            cfg = cfg)
-    elif stream is 2:
-        fun(model = model, 
-            im_dir = im_dir, 
-            image_id = image_id, 
-            Test_RCNN = test_detection, 
-            fastText = word_embeddings, 
-            prior_mask = prior_mask, 
-            Action_dic_inv = action_dic_inv, 
-            object_thres = object_thres, 
-            human_thres = human_thres, 
-            prior_flag = prior_flag, 
-            detection = detection, 
-            detect_object_centric_dict = detect_dict, 
-            device = device, 
-            cfg = cfg)
+        if stream is 0:
+            fun(model = model, 
+                img_original = img, 
+                image_id = image_id, 
+                Test_RCNN = test_detection, 
+                fastText = word_embeddings, 
+                prior_mask = prior_mask, 
+                Action_dic_inv = action_dic_inv, 
+                object_thres = object_thres, 
+                human_thres = human_thres, 
+                prior_flag = prior_flag, 
+                detection = detection, 
+                detect_app_dict = detect_dict, 
+                device = device, 
+                cfg = cfg)
+        elif stream is 1:
+            fun(model = model, 
+                img_original = img, 
+                image_id = image_id, 
+                Test_RCNN = test_detection, 
+                fastText = word_embeddings, 
+                prior_mask = prior_mask, 
+                Action_dic_inv = action_dic_inv, 
+                object_thres = object_thres, 
+                human_thres = human_thres, 
+                prior_flag = prior_flag, 
+                detection = detection, 
+                detect_human_centric_dict = detect_dict, 
+                device = device, 
+                cfg = cfg)
+        elif stream is 2:
+            fun(model = model, 
+                img_original = img, 
+                image_id = image_id, 
+                Test_RCNN = test_detection, 
+                fastText = word_embeddings, 
+                prior_mask = prior_mask, 
+                Action_dic_inv = action_dic_inv, 
+                object_thres = object_thres, 
+                human_thres = human_thres, 
+                prior_flag = prior_flag, 
+                detection = detection, 
+                detect_object_centric_dict = detect_dict, 
+                device = device, 
+                cfg = cfg)
+                
+    del model
+    torch.cuda.empty_cache()
 
     return (detection, detect_dict)

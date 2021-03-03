@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "appearance_branch"
-  WEIGHT: "output/VCOCO/model_app.pth"
+  WEIGHT: "DRG/output/VCOCO/model_app.pth"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
   RESNETS:

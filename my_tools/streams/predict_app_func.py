@@ -123,7 +123,7 @@ def generate_spatial(human_box, object_box):
 
     return Pattern
 
-def im_detect(model, im_dir, image_id, Test_RCNN, fastText, prior_mask, Action_dic_inv, object_thres, human_thres, prior_flag, detection, detect_app_dict, device, cfg):
+def im_detect(model, img_original, image_id, Test_RCNN, fastText, prior_mask, Action_dic_inv, object_thres, human_thres, prior_flag, detection, detect_app_dict, device, cfg):
 
     # im_orig, im_shape = get_blob(image_id, cfg)
 
@@ -133,14 +133,11 @@ def im_detect(model, im_dir, image_id, Test_RCNN, fastText, prior_mask, Action_d
     #     im_file = os.path.join(DATA_DIR, im_dir, 'COCO_train2014_' + (str(image_id)).zfill(12) + '.jpg')
     # else:
     #     im_file = os.path.join(DATA_DIR, im_dir, 'COCO_val2014_' + (str(image_id)).zfill(12) + '.jpg')
-    im_file = im_dir
-    img_original = Image.open(im_file)
-    img_original = img_original.convert('RGB')
+
     # when using Image.open to read images, img.size= (640, 480), while using cv2.imread, im.shape = (480, 640)
     # to be consistent with previous code, I used img.height, img.width here
     im_shape = (img_original.height, img_original.width)  # (480, 640)
     transforms = build_transforms(cfg, is_train=False)
-
 
     for Human_out in Test_RCNN[image_id]:
         if (np.max(Human_out[5]) > human_thres) and (Human_out[1] == 'Human'): # This is a valid human
@@ -236,86 +233,98 @@ def im_detect(model, im_dir, image_id, Test_RCNN, fastText, prior_mask, Action_d
 
             detect_app_dict[image_id].append(dic_save)
 
-            if prior_flag == 1:
-                prediction_HO  = apply_prior_Graph(O_class, prediction_HO)
-            if prior_flag == 2:
-                prediction_HO  = prediction_HO * Weight_mask
-            if prior_flag == 3:
-                prediction_HO  = apply_prior_Graph(O_class, prediction_HO)
-                prediction_HO  = prediction_HO * Weight_mask
+    try:
+        del blobs
+    except:
+        pass
 
-            # save image information
-            dic = {}
-            dic['image_id']   = image_id
-            dic['person_box'] = Human_out[2]
+    try:
+        del image_list
+    except:
+        pass
 
-            Score_obj = prediction_HO * O_score
-            Score_obj = np.concatenate((object_boxes_cpu, Score_obj), axis=1)
+    torch.cuda.empty_cache()
 
-            # Find out the object box associated with highest action score
-            max_idx = np.argmax(Score_obj,0)[4:]
+            # if prior_flag == 1:
+            #     prediction_HO  = apply_prior_Graph(O_class, prediction_HO)
+            # if prior_flag == 2:
+            #     prediction_HO  = prediction_HO * Weight_mask
+            # if prior_flag == 3:
+            #     prediction_HO  = apply_prior_Graph(O_class, prediction_HO)
+            #     prediction_HO  = prediction_HO * Weight_mask
 
-            # agent mAP
-            for i in range(29):
-                #'''
-                # walk, smile, run, stand
-                if (i == 3) or (i == 17) or (i == 22) or (i == 27):
-                    agent_name      = Action_dic_inv[i] + '_agent'
-                    dic[agent_name] = np.max(Human_out[5]) * prediction_H[0][i]
-                    continue
+            # # save image information
+            # dic = {}
+            # dic['image_id']   = image_id
+            # dic['person_box'] = Human_out[2]
 
-                # cut
-                if i == 2:
-                    agent_name = 'cut_agent'
-                    dic[agent_name] = np.max(Human_out[5]) * max(Score_obj[max_idx[2]][4 + 2], Score_obj[max_idx[4]][4 + 4])
-                    continue
-                if i == 4:
-                    continue
+            # Score_obj = prediction_HO * O_score
+            # Score_obj = np.concatenate((object_boxes_cpu, Score_obj), axis=1)
 
-                # eat
-                if i == 9:
-                    agent_name = 'eat_agent'
-                    dic[agent_name] = np.max(Human_out[5]) * max(Score_obj[max_idx[9]][4 + 9], Score_obj[max_idx[16]][4 + 16])
-                    continue
-                if i == 16:
-                    continue
+            # # Find out the object box associated with highest action score
+            # max_idx = np.argmax(Score_obj,0)[4:]
 
-                # hit
-                if i == 19:
-                    agent_name = 'hit_agent'
-                    dic[agent_name] = np.max(Human_out[5]) * max(Score_obj[max_idx[19]][4 + 19], Score_obj[max_idx[20]][4 + 20])
-                    continue
-                if i == 20:
-                    continue
+            # # agent mAP
+            # for i in range(29):
+            #     #'''
+            #     # walk, smile, run, stand
+            #     if (i == 3) or (i == 17) or (i == 22) or (i == 27):
+            #         agent_name      = Action_dic_inv[i] + '_agent'
+            #         dic[agent_name] = np.max(Human_out[5]) * prediction_H[0][i]
+            #         continue
 
-                # These 2 classes need to save manually because there is '_' in action name
-                if i == 6:
-                    agent_name = 'talk_on_phone_agent'
-                    dic[agent_name] = np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i]
-                    continue
+            #     # cut
+            #     if i == 2:
+            #         agent_name = 'cut_agent'
+            #         dic[agent_name] = np.max(Human_out[5]) * max(Score_obj[max_idx[2]][4 + 2], Score_obj[max_idx[4]][4 + 4])
+            #         continue
+            #     if i == 4:
+            #         continue
 
-                if i == 8:
-                    agent_name = 'work_on_computer_agent'
-                    dic[agent_name] = np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i]
-                    continue
+            #     # eat
+            #     if i == 9:
+            #         agent_name = 'eat_agent'
+            #         dic[agent_name] = np.max(Human_out[5]) * max(Score_obj[max_idx[9]][4 + 9], Score_obj[max_idx[16]][4 + 16])
+            #         continue
+            #     if i == 16:
+            #         continue
 
-                # all the rest
-                agent_name =  Action_dic_inv[i].split("_")[0] + '_agent'
-                dic[agent_name] = np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i]
+            #     # hit
+            #     if i == 19:
+            #         agent_name = 'hit_agent'
+            #         dic[agent_name] = np.max(Human_out[5]) * max(Score_obj[max_idx[19]][4 + 19], Score_obj[max_idx[20]][4 + 20])
+            #         continue
+            #     if i == 20:
+            #         continue
 
-            # role mAP
-            for i in range(29):
-                # walk, smile, run, stand. Won't contribute to role mAP
-                if (i == 3) or (i == 17) or (i == 22) or (i == 27):
-                    dic[Action_dic_inv[i]] = np.append(np.full(4, np.nan).reshape(1,4), np.max(Human_out[5]) * prediction_H[0][i])
-                    continue
+            #     # These 2 classes need to save manually because there is '_' in action name
+            #     if i == 6:
+            #         agent_name = 'talk_on_phone_agent'
+            #         dic[agent_name] = np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i]
+            #         continue
 
-                # Impossible to perform this action
-                if np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i] == 0:
-                   dic[Action_dic_inv[i]] = np.append(np.full(4, np.nan).reshape(1,4), np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i])
+            #     if i == 8:
+            #         agent_name = 'work_on_computer_agent'
+            #         dic[agent_name] = np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i]
+            #         continue
 
-                # Action with >0 score
-                else:
-                   dic[Action_dic_inv[i]] = np.append(Score_obj[max_idx[i]][:4], np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i])
+            #     # all the rest
+            #     agent_name =  Action_dic_inv[i].split("_")[0] + '_agent'
+            #     dic[agent_name] = np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i]
 
-            detection.append(dic)
+            # # role mAP
+            # for i in range(29):
+            #     # walk, smile, run, stand. Won't contribute to role mAP
+            #     if (i == 3) or (i == 17) or (i == 22) or (i == 27):
+            #         dic[Action_dic_inv[i]] = np.append(np.full(4, np.nan).reshape(1,4), np.max(Human_out[5]) * prediction_H[0][i])
+            #         continue
+
+            #     # Impossible to perform this action
+            #     if np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i] == 0:
+            #        dic[Action_dic_inv[i]] = np.append(np.full(4, np.nan).reshape(1,4), np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i])
+
+            #     # Action with >0 score
+            #     else:
+            #        dic[Action_dic_inv[i]] = np.append(Score_obj[max_idx[i]][:4], np.max(Human_out[5]) * Score_obj[max_idx[i]][4 + i])
+
+            # detection.append(dic)
