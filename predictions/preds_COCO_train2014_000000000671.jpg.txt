@@ -1,0 +1,2 @@
+ride(89.65%) using horse(99.22%)
+sit(75.21%) using horse(99.22%)

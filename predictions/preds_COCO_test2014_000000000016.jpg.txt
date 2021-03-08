@@ -1,0 +1,3 @@
+hit(53.71%) using baseball bat(87.54%)
+hold(70.93%)  baseball bat(87.54%)
+look(19.10%)  sports ball(99.49%)

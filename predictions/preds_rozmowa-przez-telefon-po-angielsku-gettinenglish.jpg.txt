@@ -1,0 +1,3 @@
+hold(40.32%)  cell phone(92.87%)
+look(18.24%)  laptop(84.38%)
+talk on phone(10.24%) using cell phone(56.62%)
